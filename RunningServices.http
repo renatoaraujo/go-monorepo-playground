@@ -1,0 +1,16 @@
+### Producer service is alive
+# @name Producer service is alive
+GET localhost:8080
+User-Agent: Jetbrains
+Content-Type: application/json
+
+###
+
+### Consumer service
+# @name Consumer service is alive
+GET localhost:8901
+User-Agent: Jetbrains
+Content-Type: application/json
+
+###
+
