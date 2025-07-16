@@ -68,8 +68,14 @@ func Setup(ctx context.Context, cfg *config.Config) (*natsclient.Client, *Shutdo
 		slog.InfoContext(ctx, "No queue clients initialized.")
 	}
 
+	// Reset non-critical errors to nil before returning
+	if err != nil {
+		slog.WarnContext(ctx, "Non-critical errors occurred during setup but will not block startup:", "error", err)
+		err = nil
+	}
+
 	// Return the (potentially nil) NATS client, the shutdown manager, and any critical setup error
-	return natsCl, shutdownManager, err // Return the last critical error encountered
+	return natsCl, shutdownManager, err
 }
 
 // setupNats initializes the NATS client using the config.
