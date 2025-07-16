@@ -1,5 +1,6 @@
 FROM golang:1.24 AS builder
-ARG VERSION=dev
+ARG VERSION=1.0.0
+ENV VERSION=${VERSION}
 
 WORKDIR /app
 
@@ -14,7 +15,7 @@ COPY ./services ./services
 RUN cd services/producer && CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-X main.version=$VERSION" \
     -o /app/bin/producer \
-    ./...
+    ./cmd/producer
 
 FROM scratch
 

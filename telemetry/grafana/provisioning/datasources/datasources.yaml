@@ -1,0 +1,56 @@
+datasources:
+  - name: Tempo
+    type: tempo
+    access: proxy
+    orgId: 1
+    url: http://tempo:3200
+    basicAuth: false
+    uid: tempo
+    jsonData:
+      serviceMap:
+        datasourceUid: prometheus
+      search:
+        hide: false
+      nodeGraph:
+        enabled: true
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['app', 'compose_service']
+        mappedTags: [{ key: 'app', value: 'compose_service' }]
+        mapTagNamesEnabled: true
+        spanStartTimeShift: '-1s'
+        spanEndTimeShift: '1s'
+        filterByTraceID: true
+        filterBySpanID: true
+      lokiSearch:
+        datasourceUid: loki
+
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090
+    uid: prometheus
+
+  - name: Loki
+    type: loki
+    access: proxy
+    orgId: 1
+    url: http://loki:3100
+    basicAuth: false
+    isDefault: true
+    uid: loki
+    jsonData:
+      timeout: 60
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: '"trace_id":"([a-f0-9]{32})"'
+          name: trace_id
+          url: '${__value.raw}'
+          urlDisplayLabel: "Open distributed tracing"
+        - datasourceUid: tempo
+          matcherRegex: '"span_id":"([a-f0-9]{16})"'
+          name: span_id
+          url: '${__value.raw}'
+          urlDisplayLabel: "Open Span"

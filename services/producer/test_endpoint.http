@@ -1,0 +1,25 @@
+### Test the message create endpoint
+
+POST http://localhost:8080/message/create
+Content-Type: application/json
+
+{
+  "message": "Hello from the producer service!"
+}
+
+### Test with empty message (should fail)
+
+POST http://localhost:8080/message/create
+Content-Type: application/json
+
+{
+  "message": ""
+}
+
+### Test health endpoint
+
+GET http://localhost:8080/health
+
+### Test hello endpoint
+
+GET http://localhost:8080/

@@ -18,10 +18,10 @@ type Config struct {
 	TracingURL     string `split_words:"true" default:"otel-collector:4317"`
 
 	// Sentry
-	SentryEnabled              bool          `split_words:"true" required:"true" default:"true"`
-	SentryDsn                  string        `split_words:"true" required:"true"`
-	SentryDebugEnabled         bool          `split_words:"true" default:"true"`
-	SentryTracingEnabled       bool          `split_words:"true" default:"true"`
+	SentryEnabled              bool          `split_words:"true" required:"false" default:"false"`
+	SentryDsn                  string        `split_words:"true" required:"false"`
+	SentryDebugEnabled         bool          `split_words:"true" default:"false"`
+	SentryTracingEnabled       bool          `split_words:"true" default:"false"`
 	SentryTracingSampleRate    float64       `split_words:"true" default:"1.0"`
 	SentryFlushTimeoutDuration time.Duration `split_words:"true" default:"2s"`
 
@@ -29,6 +29,15 @@ type Config struct {
 	ServiceName    string `split_words:"true" required:"true" default:"go-monorepo-playground"`
 	Environment    string `split_words:"true" required:"true" default:"development"`
 	ReleaseVersion string `split_words:"true" required:"true" default:"development"`
+
+	PyroscopeProfileTypes         []string `split_words:"true" default:"cpu,mem,block,mutex,heap,gc,threadcreate,trace"`
+	PyroscopeEnableMutexProfiling bool     `split_words:"true" default:"false"`
+	PyroscopeMutexProfileFraction int      `split_words:"true" default:"100"`
+	PyroscopeEnableBlockProfiling bool     `split_words:"true" default:"false"`
+	PyroscopeBlockProfileRate     int      `split_words:"true" default:"10000"`
+	PyroscopeURL                  string   `split_words:"true" default:"http://pyroscope:4040"`
+	PyroscopeAuthToken            string   `split_words:"true" default:""`
+	PyroscopeEnabled              bool     `split_words:"true" default:"true"`
 }
 
 func Init(releaseVersion string) (*Config, error) {
