@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: # Specify your branches here
+    branches:
       - main # The 'main' branch
       - 'releases/*' # The release branches
 
