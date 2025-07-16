@@ -91,12 +91,43 @@ clean-all: clean clean-loadtest ## Clean binaries and load test results
 	@echo "== clean all completed"
 
 ##@ Tests
-test: tools ## Run unit tests
-	@echo "== unit test"
-	go test -cover ./...
+test: tools ## Run unit tests for all modules
+	@./scripts/test-runner.sh all
 
-##@ Run static checks
-check: tools
-	go fmt ./...
-	go vet ./...
-	golangci-lint run --config=.golangci.yaml ./...
+test-verbose: tools ## Run unit tests with verbose output for all modules
+	@./scripts/test-runner.sh verbose
+
+test-producer: tools ## Run tests for producer service only
+	@./scripts/test-runner.sh producer
+
+test-consumer: tools ## Run tests for consumer service only
+	@./scripts/test-runner.sh consumer
+
+test-pkg: tools ## Run tests for all packages
+	@./scripts/test-runner.sh packages
+
+test-integration: tools ## Run integration tests (requires Docker)
+	@echo "== running integration tests"
+	@docker-compose up -d postgres nats
+	@sleep 5
+	@./scripts/test-runner.sh all "-tags=integration -cover"
+	@docker-compose down
+
+test-coverage: tools ## Run tests with coverage report
+	@./scripts/test-runner.sh coverage
+
+test-watch: tools ## Run tests in watch mode (requires entr)
+	@echo "== running tests in watch mode"
+	@find . -name "*.go" | entr -r ./scripts/test-runner.sh all
+
+test-bench: tools ## Run benchmark tests
+	@./scripts/test-runner.sh bench
+
+test-race: tools ## Run tests with race detection
+	@./scripts/test-runner.sh race
+
+test-clean: ## Clean test cache and temporary files
+	@echo "== cleaning test cache"
+	@go clean -testcache
+	@rm -f coverage.out coverage.tmp
+	@find . -name "*.test" -delete
