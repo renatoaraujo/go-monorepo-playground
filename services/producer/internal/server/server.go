@@ -43,9 +43,9 @@ func (s *Server) Start() error {
 	s.server = &http.Server{
 		Addr:         fmt.Sprintf(":%d", s.config.Server.Port),
 		Handler:      s.loggingMiddleware(mux),
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  time.Duration(s.config.Server.ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(s.config.Server.WriteTimeout) * time.Second,
+		IdleTimeout:  time.Duration(s.config.Server.IdleTimeout) * time.Second,
 	}
 
 	s.logger.Info("starting HTTP server", "port", s.config.Server.Port)
