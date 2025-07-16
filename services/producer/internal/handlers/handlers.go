@@ -176,7 +176,10 @@ func (h *Handler) Health() http.HandlerFunc {
 
 // writeErrorResponse writes an error response
 func (h *Handler) writeErrorResponse(w http.ResponseWriter, message string, statusCode int) {
-	response := ErrorResponse{Error: message}
+	response := ErrorResponse{
+		Error:     message,
+		Timestamp: time.Now(),
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
