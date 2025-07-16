@@ -14,7 +14,10 @@ type Config struct {
 
 // ServerConfig holds HTTP server configuration
 type ServerConfig struct {
-	Port int `json:"port"`
+	Port        int `json:"port"`
+	ReadTimeout int `json:"read_timeout"`
+	WriteTimeout int `json:"write_timeout"`
+	IdleTimeout int `json:"idle_timeout"`
 }
 
 // QueueConfig holds queue configuration
