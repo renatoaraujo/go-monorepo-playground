@@ -1,0 +1,5 @@
+server_address: :4040
+storage_path: /pyroscope-data
+retention_period: 7200h
+log_level: error
+pprof_enabled: true

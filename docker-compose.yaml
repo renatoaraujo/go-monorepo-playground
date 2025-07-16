@@ -1,0 +1,215 @@
+services:
+  #  --- Infrastructure & Monitoring
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    restart: unless-stopped
+    privileged: true
+    expose:
+      - 8080
+    command:
+      - '-housekeeping_interval=15s'
+      - '-docker_only=true'
+      - '-store_container_labels=false'
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /etc/machine-id:/etc/machine-id:ro
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    expose:
+      - 9100
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.ignored-mount-points
+      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /:/host:ro,ro
+
+  tempo:
+    image: grafana/tempo:latest
+    restart: unless-stopped
+    command: [ "-config.file=/etc/tempo-config.yaml" ]
+    volumes:
+      - ./telemetry/tempo-config.yaml:/etc/tempo-config.yaml
+
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    restart: unless-stopped
+    command: [ "--config=/etc/otel-collector-config.yaml" ]
+    volumes:
+      - ./telemetry/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC receiver - needed for your app to send traces
+    depends_on:
+      - tempo
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./telemetry/prometheus.yaml:/etc/prometheus/prometheus.yaml
+    ports:
+      - "9090:9090"
+
+  loki:
+    image: grafana/loki:2.9.7
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    user: root
+    volumes:
+      - ./telemetry/loki-config.yaml:/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.7
+    restart: unless-stopped
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./telemetry/promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - loki
+
+  pyroscope:
+    image: pyroscope/pyroscope:latest
+    restart: unless-stopped
+    command:
+      - "server"
+      - "-config=/etc/pyroscope/config.yaml"
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./telemetry/pyroscope.yaml:/etc/pyroscope/config.yaml:ro
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    volumes:
+      - ./telemetry/grafana/provisioning/datasources/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./telemetry/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./telemetry/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+    ports:
+      - "3000:3000"
+    depends_on:
+      - tempo
+      - loki
+      - pyroscope
+
+  # --- Application Services
+  producer:
+    build:
+      context: .
+      dockerfile: services/producer/Dockerfile
+      args:
+        VERSION: rc
+    ports:
+      - "8080:8080"
+    environment:
+      ENVIRONMENT: development
+      SERVICE_NAME: producer
+      OBSERVABILITY_SENTRY_DSN: 
+    depends_on:
+      nats:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  consumer:
+    build:
+      context: .
+      dockerfile: services/consumer/Dockerfile
+      args:
+        VERSION: rc
+    ports:
+      - "8901:8901"
+    environment:
+      ENVIRONMENT: development
+      SERVICE_NAME: consumer
+      OBSERVABILITY_SENTRY_DSN:
+    depends_on:
+      nats:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  nats:
+    image: nats:latest
+    container_name: nats-server
+    expose:
+      - 4222
+      - 8222
+    command:
+      - "-m"
+      - "8222"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/nats-server", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres-server
+    environment:
+      POSTGRES_DB: monorepo
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/monorepo?sslmode=disable"
+    expose:
+      - 9187
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  nats_exporter:
+    image: natsio/prometheus-nats-exporter:latest
+    restart: unless-stopped
+    command:
+      - "-varz=http://nats:8222"
+      - "-connz=http://nats:8222"
+      - "-subz=http://nats:8222"
+      - "-routez=http://nats:8222"
+    expose:
+      - 7777
+    depends_on:
+      nats:
+        condition: service_healthy

@@ -1,0 +1,35 @@
+# Vegeta Load Test Targets Configuration
+# This file defines various load test scenarios for the Go Monorepo Playground services
+
+# Basic GET requests to both services
+GET http://localhost:8080
+Content-Type: application/json
+User-Agent: Vegeta-LoadTest-Producer
+
+GET http://localhost:8901
+Content-Type: application/json
+User-Agent: Vegeta-LoadTest-Consumer
+
+# Simulate different user agents and request patterns
+GET http://localhost:8080
+Content-Type: application/json
+User-Agent: Mobile-App/1.0
+X-Request-ID: mobile-{{.ID}}
+
+GET http://localhost:8901
+Content-Type: application/json
+User-Agent: Web-App/2.0
+X-Request-ID: web-{{.ID}}
+
+# Add some requests with different headers to generate varied telemetry
+GET http://localhost:8080
+Content-Type: application/json
+User-Agent: API-Client/1.0
+X-Client-Version: 1.0.0
+X-Request-Source: api
+
+GET http://localhost:8901
+Content-Type: application/json
+User-Agent: Dashboard/1.0
+X-Client-Version: 2.0.0
+X-Request-Source: dashboard
