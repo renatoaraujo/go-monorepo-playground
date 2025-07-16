@@ -125,14 +125,8 @@ func (c *PgxClient) Query(ctx context.Context, sql string, args ...any) (pgx.Row
 // Use the Scan method on the returned Row object.
 func (c *PgxClient) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	if c.pool == nil {
-		// This is tricky, QueryRow doesn't return an error.
-		// The error occurs during Scan(). We can't return an error here easily.
-		// Logging a warning might be the only option, or require callers to check Pool().
 		slog.ErrorContext(ctx, "QueryRow called on uninitialized postgres client pool")
-		// Returning an empty pgx.Row might lead to confusing Scan errors later.
-		// This highlights a limitation of simple wrappers for QueryRow.
-		// A more robust wrapper might return a custom type that includes an error check before Scan.
-		// For this example, we proceed but rely on Scan failing later if pool is nil.
+		return &ErrorRow{err: fmt.Errorf("postgres client pool is not initialized")}
 	}
 	return c.pool.QueryRow(ctx, sql, args...)
 }
