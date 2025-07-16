@@ -3,10 +3,11 @@ package postgres_test // Use _test package
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	// Use testcontainers for isolated Postgres testing
 	"github.com/testcontainers/testcontainers-go"

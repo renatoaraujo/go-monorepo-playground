@@ -30,6 +30,17 @@ func (p *NATSClientPublisher) Publish(subject string, data []byte) error {
 	return p.client.Publish(subject, data)
 }
 
+// Producer defines the interface for producing messages
+// Allows for mocking in tests
+// Producer interface for message production
+// Only the methods used by handlers should be included
+// Add more as needed
+//
+//go:generate mockgen -destination=producer_mock.go -package=service github.com/renatoaraujo/go-monorepo-playground/services/producer/internal/service Producer
+type Producer interface {
+	PublishMessage(ctx context.Context, message string, subject string) error
+}
+
 // ProducerService handles message production
 type ProducerService struct {
 	publisher MessagePublisher

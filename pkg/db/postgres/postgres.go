@@ -3,9 +3,10 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 	"log/slog"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,6 +15,14 @@ import (
 	// Use your actual config import path
 	"github.com/renatoaraujo/go-monorepo-playground/pkg/db/config" // Example path
 )
+
+type ErrorRow struct {
+	err error
+}
+
+func (e *ErrorRow) Scan(dest ...any) error {
+	return e.err
+}
 
 // PgxClient wraps the pgx connection pool.
 type PgxClient struct {

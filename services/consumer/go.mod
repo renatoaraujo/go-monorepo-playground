@@ -1,6 +1,6 @@
 module github.com/renatoaraujo/go-monorepo-playground/services/consumer
 
-go 1.24.1
+go 1.24.2
 
 require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0

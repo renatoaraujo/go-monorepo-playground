@@ -15,7 +15,7 @@ import (
 // Handler holds dependencies for HTTP handlers
 type Handler struct {
 	logger          *slog.Logger
-	producerService *service.ProducerService
+	producerService service.Producer // use interface for easier testing
 	messageSubject  string
 }
 
@@ -27,7 +27,7 @@ func NewHandler(logger *slog.Logger) *Handler {
 }
 
 // SetProducerService sets the producer service for the handler
-func (h *Handler) SetProducerService(producerService *service.ProducerService, messageSubject string) {
+func (h *Handler) SetProducerService(producerService service.Producer, messageSubject string) {
 	h.producerService = producerService
 	h.messageSubject = messageSubject
 }
